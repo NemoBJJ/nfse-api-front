@@ -21,6 +21,16 @@ const EmissaoNfse = () => {
   const [consulta, setConsulta] = useState(null);
   const [referenciaConsulta, setReferenciaConsulta] = useState("");
 
+  const montarUrlDownload = (url) => {
+    if (!url) return null;
+
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+
+    return `https://homologacao.focusnfe.com.br${url}`;
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -263,11 +273,23 @@ const EmissaoNfse = () => {
               <p>
                 <strong>DANFSe:</strong>{" "}
                 <a
-                  href={consulta.urlPdf}
+                  href={montarUrlDownload(consulta.urlPdf)}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   📄 Baixar PDF
+                </a>
+              </p>
+            )}
+            {consulta.urlXml && (
+              <p>
+                <strong>XML da Nota:</strong>{" "}
+                <a
+                  href={montarUrlDownload(consulta.urlXml)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  📄 Baixar XML
                 </a>
               </p>
             )}
