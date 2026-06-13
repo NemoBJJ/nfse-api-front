@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import EmissaoNfse from "./pages/EmissaoNfse";
 import "./App.css";
 
