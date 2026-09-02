@@ -1,0 +1,420 @@
+﻿===== C:\Users\Nemo\Desktop\erp-system\nfse-api-front\src\api.js =====
+import axios from 'axios';
+
+const isDevelopment =
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1';
+
+const BASE_URL = isDevelopment
+  ? 'http://localhost:8085/api'
+  : 'https://nfse-container.neemindev.com/api';
+
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export default api;
+
+===== C:\Users\Nemo\Desktop\erp-system\nfse-api-front\src\App.js =====
+import React from "react";
+import EmissaoNfse from "./pages/EmissaoNfse";
+import "./App.css";
+
+function App() {
+  return (
+    <div className="App">
+      <EmissaoNfse />
+    </div>
+  );
+}
+
+export default App;
+
+===== C:\Users\Nemo\Desktop\erp-system\nfse-api-front\src\App.test.js =====
+import { render, screen } from '@testing-library/react';
+import App from './App';
+
+test('renders learn react link', () => {
+  render(<App />);
+  const linkElement = screen.getByText(/learn react/i);
+  expect(linkElement).toBeInTheDocument();
+});
+
+===== C:\Users\Nemo\Desktop\erp-system\nfse-api-front\src\index.js =====
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+===== C:\Users\Nemo\Desktop\erp-system\nfse-api-front\src\reportWebVitals.js =====
+const reportWebVitals = onPerfEntry => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+
+===== C:\Users\Nemo\Desktop\erp-system\nfse-api-front\src\setupTests.js =====
+// jest-dom adds custom jest matchers for asserting on DOM nodes.
+// allows you to do things like:
+// expect(element).toHaveTextContent(/react/i)
+// learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom';
+
+===== C:\Users\Nemo\Desktop\erp-system\nfse-api-front\src\pages\EmissaoNfse.jsx =====
+import React, { useState } from "react";
+import NfseService from "../services/NfseService";
+import "./EmissaoNfse.css";
+
+const EmissaoNfse = () => {
+  const [formData, setFormData] = useState({
+    cnpjTomador: "",
+    razaoSocialTomador: "",
+    cepTomador: "",
+    logradouroTomador: "",
+    numeroTomador: "",
+    bairroTomador: "",
+    telefoneTomador: "",
+    emailTomador: "",
+    descricaoServico: "",
+    valorServico: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [resultado, setResultado] = useState(null);
+  const [consulta, setConsulta] = useState(null);
+  const [referenciaConsulta, setReferenciaConsulta] = useState("");
+
+  const montarUrlDownload = (url) => {
+    if (!url) return null;
+
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+
+    return `https://homologacao.focusnfe.com.br${url}`;
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setResultado(null);
+    setConsulta(null);
+
+    try {
+      const data = {
+        ...formData,
+        valorServico: parseFloat(formData.valorServico),
+      };
+      const response = await NfseService.emitirNota(1, data);
+      setResultado(response);
+
+      if (response.referencia) {
+        setTimeout(async () => {
+          try {
+            const consultaResponse = await NfseService.consultarNota(
+              response.referencia
+            );
+            setConsulta(consultaResponse);
+          } catch (err) {
+            console.error("Erro na consulta automÃ¡tica:", err);
+          }
+        }, 5000);
+      }
+    } catch (error) {
+      alert("Erro ao emitir nota. Verifique se o backend estÃ¡ rodando.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConsultar = async () => {
+    if (!referenciaConsulta) {
+      alert("Digite uma referÃªncia");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await NfseService.consultarNota(referenciaConsulta);
+      setConsulta(response);
+    } catch (error) {
+      alert("Nota nÃ£o encontrada");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="emissao-container">
+      <h1>ðŸ“„ EmissÃ£o de NFSe</h1>
+
+      <div className="form-section">
+        <h2>Dados do Tomador</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <div className="form-group">
+              <label>CNPJ/CPF do Tomador *</label>
+              <input
+                type="text"
+                name="cnpjTomador"
+                value={formData.cnpjTomador}
+                onChange={handleChange}
+                placeholder="00.000.000/0001-91"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>RazÃ£o Social / Nome *</label>
+              <input
+                type="text"
+                name="razaoSocialTomador"
+                value={formData.razaoSocialTomador}
+                onChange={handleChange}
+                placeholder="CLIENTE TESTE"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>CEP *</label>
+              <input
+                type="text"
+                name="cepTomador"
+                value={formData.cepTomador}
+                onChange={handleChange}
+                placeholder="59010030"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Logradouro *</label>
+              <input
+                type="text"
+                name="logradouroTomador"
+                value={formData.logradouroTomador}
+                onChange={handleChange}
+                placeholder="Rua Teste"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>NÃºmero *</label>
+              <input
+                type="text"
+                name="numeroTomador"
+                value={formData.numeroTomador}
+                onChange={handleChange}
+                placeholder="100"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Bairro *</label>
+              <input
+                type="text"
+                name="bairroTomador"
+                value={formData.bairroTomador}
+                onChange={handleChange}
+                placeholder="Praia do Meio"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Telefone</label>
+              <input
+                type="text"
+                name="telefoneTomador"
+                value={formData.telefoneTomador}
+                onChange={handleChange}
+                placeholder="84987446061"
+              />
+            </div>
+            <div className="form-group">
+              <label>E-mail</label>
+              <input
+                type="email"
+                name="emailTomador"
+                value={formData.emailTomador}
+                onChange={handleChange}
+                placeholder="cliente@teste.com"
+              />
+            </div>
+          </div>
+
+          <h2>Dados do ServiÃ§o</h2>
+          <div className="form-row">
+            <div className="form-group">
+              <label>DescriÃ§Ã£o do ServiÃ§o *</label>
+              <input
+                type="text"
+                name="descricaoServico"
+                value={formData.descricaoServico}
+                onChange={handleChange}
+                placeholder="DESENVOLVIMENTO DE SOFTWARE - TESTE"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Valor do ServiÃ§o (R$) *</label>
+              <input
+                type="number"
+                step="0.01"
+                name="valorServico"
+                value={formData.valorServico}
+                onChange={handleChange}
+                placeholder="100,00"
+                required
+              />
+            </div>
+          </div>
+
+          <button type="submit" disabled={loading}>
+            {loading ? "Emitindo..." : "ðŸ’° Emitir Nota Fiscal"}
+          </button>
+        </form>
+      </div>
+
+      {resultado && (
+        <div className="result-section">
+          <h3>âœ… Nota Emitida!</h3>
+          <p>
+            <strong>Status:</strong> {resultado.status}
+          </p>
+          <p>
+            <strong>NÃºmero RPS:</strong> {resultado.numeroRps}
+          </p>
+          {resultado.referencia && (
+            <p>
+              <strong>ReferÃªncia:</strong> {resultado.referencia}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="consulta-section">
+        <h2>ðŸ” Consultar Nota por ReferÃªncia</h2>
+        <div className="consulta-form">
+          <input
+            type="text"
+            placeholder="Digite a referÃªncia da nota"
+            value={referenciaConsulta}
+            onChange={(e) => setReferenciaConsulta(e.target.value)}
+          />
+          <button onClick={handleConsultar} disabled={loading}>
+            {loading ? "Consultando..." : "Consultar"}
+          </button>
+        </div>
+
+        {consulta && (
+          <div className="consulta-result">
+            <h3>Resultado da Consulta</h3>
+            <p>
+              <strong>Status:</strong> {consulta.status}
+            </p>
+            {consulta.numeroRps && (
+              <p>
+                <strong>NÃºmero RPS:</strong> {consulta.numeroRps}
+              </p>
+            )}
+            {consulta.numero && (
+              <p>
+                <strong>NÃºmero NFSe:</strong> {consulta.numero}
+              </p>
+            )}
+            {consulta.urlPdf && (
+              <p>
+                <strong>DANFSe:</strong>{" "}
+                <a
+                  href={montarUrlDownload(consulta.urlPdf)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  ðŸ“„ Baixar PDF
+                </a>
+              </p>
+            )}
+            {consulta.urlXml && (
+              <p>
+                <strong>XML da Nota:</strong>{" "}
+                <a
+                  href={montarUrlDownload(consulta.urlXml)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  ðŸ“„ Baixar XML
+                </a>
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default EmissaoNfse;
+
+===== C:\Users\Nemo\Desktop\erp-system\nfse-api-front\src\services\NfseService.js =====
+import axios from "axios";
+
+const API_BASE_URL = "http://localhost:8085/api/nfse";
+
+const NfseService = {
+  emitirNota: async (empresaId, dadosNota) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/emitir/${empresaId}`, dadosNota);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao emitir nota:", error);
+      throw error;
+    }
+  },
+
+  consultarNota: async (referencia) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/consultar/${referencia}`);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao consultar nota:", error);
+      throw error;
+    }
+  },
+};
+
+export default NfseService;
+
