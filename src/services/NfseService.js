@@ -1,11 +1,9 @@
-import axios from "axios";
-
-const API_BASE_URL = "http://localhost:8085/api/nfse";
+﻿import api from "../api";
 
 const NfseService = {
   emitirNota: async (empresaId, dadosNota) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/emitir/${empresaId}`, dadosNota);
+      const response = await api.post(`/nfse/emitir/${empresaId}`, dadosNota);
       return response.data;
     } catch (error) {
       console.error("Erro ao emitir nota:", error);
@@ -15,7 +13,7 @@ const NfseService = {
 
   consultarNota: async (referencia) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/consultar/${referencia}`);
+      const response = await api.get(`/nfse/consultar/${referencia}`);
       return response.data;
     } catch (error) {
       console.error("Erro ao consultar nota:", error);
